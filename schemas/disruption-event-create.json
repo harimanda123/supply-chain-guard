@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "AffectedSKU": {
+      "properties": {
+        "sku": {
+          "title": "Sku",
+          "type": "string"
+        },
+        "qty": {
+          "title": "Qty",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "sku",
+        "qty"
+      ],
+      "title": "AffectedSKU",
+      "type": "object"
+    },
+    "EventType": {
+      "enum": [
+        "port_strike",
+        "vessel_delay",
+        "weather",
+        "customs_hold"
+      ],
+      "title": "EventType",
+      "type": "string"
+    },
+    "Location": {
+      "properties": {
+        "lat": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lat"
+        },
+        "lng": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lng"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        }
+      },
+      "title": "Location",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": [
+        "critical",
+        "high",
+        "medium"
+      ],
+      "title": "Severity",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "source_system": {
+      "example": "erp_system_a",
+      "title": "Source System",
+      "type": "string"
+    },
+    "event_type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "shipment_id": {
+      "example": "SHP-20240427-001",
+      "title": "Shipment Id",
+      "type": "string"
+    },
+    "affected_skus": {
+      "items": {
+        "$ref": "#/$defs/AffectedSKU"
+      },
+      "title": "Affected Skus",
+      "type": "array"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Location"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "original_eta": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Original Eta"
+    },
+    "revised_eta": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revised Eta"
+    },
+    "severity": {
+      "$ref": "#/$defs/Severity"
+    }
+  },
+  "required": [
+    "source_system",
+    "event_type",
+    "shipment_id",
+    "affected_skus",
+    "severity"
+  ],
+  "title": "DisruptionEventCreate",
+  "type": "object"
+}

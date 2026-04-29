@@ -1,0 +1,89 @@
+{
+  "properties": {
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "source_system": {
+      "title": "Source System",
+      "type": "string"
+    },
+    "event_type": {
+      "title": "Event Type",
+      "type": "string"
+    },
+    "shipment_id": {
+      "title": "Shipment Id",
+      "type": "string"
+    },
+    "affected_skus": {
+      "items": {},
+      "title": "Affected Skus",
+      "type": "array"
+    },
+    "location": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Location"
+    },
+    "original_eta": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Original Eta"
+    },
+    "revised_eta": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revised Eta"
+    },
+    "severity": {
+      "title": "Severity",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "received_at": {
+      "format": "date-time",
+      "title": "Received At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "source_system",
+    "event_type",
+    "shipment_id",
+    "affected_skus",
+    "severity",
+    "status",
+    "received_at"
+  ],
+  "title": "DisruptionEventResponse",
+  "type": "object"
+}

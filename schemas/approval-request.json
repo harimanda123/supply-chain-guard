@@ -1,0 +1,30 @@
+{
+  "properties": {
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "approved": {
+      "title": "Approved",
+      "type": "boolean"
+    },
+    "reviewer_note": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reviewer Note"
+    }
+  },
+  "required": [
+    "event_id",
+    "approved"
+  ],
+  "title": "ApprovalRequest",
+  "type": "object"
+}

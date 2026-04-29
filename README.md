@@ -513,6 +513,53 @@ Every pipeline run is traced automatically when `LANGSMITH_TRACING=true`.
 
 ---
 
+## JSON Schemas for ERP Integration
+
+All API contracts are published as JSON Schema (Draft 2020-12), generated directly from the Pydantic models. ERP teams use these to validate payloads client-side and auto-generate strongly-typed client code before writing a single line of integration code.
+
+### Schema files (`schemas/`)
+
+| File | Used for |
+|---|---|
+| [disruption-event-create.json](schemas/disruption-event-create.json) | Payload to POST when submitting a disruption |
+| [disruption-event-response.json](schemas/disruption-event-response.json) | Response from the submit and status endpoints |
+| [resolution-plan.json](schemas/resolution-plan.json) | Response from `GET /approvals/{event_id}` — the recommended carrier, cost, audit trail |
+| [approval-request.json](schemas/approval-request.json) | Payload to POST when approving or rejecting |
+| [approval-response.json](schemas/approval-response.json) | Confirmation response after approve/reject |
+| [carrier.json](schemas/carrier.json) | Carrier record structure |
+
+### Regenerate schemas
+
+If a model changes, re-export:
+
+```bash
+uv run python scripts/export_schemas.py
+```
+
+### Using schemas in an ERP integration
+
+**Python (jsonschema):**
+```python
+import json, jsonschema, requests
+
+schema = json.load(open("schemas/disruption-event-create.json"))
+payload = {
+    "source_system": "erp_system_a",
+    "event_type": "vessel_delay",
+    "shipment_id": "SHP-001",
+    "affected_skus": [{"sku": "SKU-9921", "qty": 500}],
+    "original_eta": "2026-05-01T00:00:00Z",
+    "revised_eta": "2026-05-08T00:00:00Z",
+    "severity": "critical"
+}
+jsonschema.validate(payload, schema)   # raises if invalid
+requests.post("http://supply-chain-guard/api/v1/events/disruption", json=payload)
+```
+
+**Java / .NET / other:** Import the `.json` files into any JSON Schema-compatible validator (e.g. `networknt/json-schema-validator` for Java, `Newtonsoft.Json.Schema` for .NET).
+
+---
+
 ## ERP & TMS Integration
 
 ### Integration Model — Pull, Not Push

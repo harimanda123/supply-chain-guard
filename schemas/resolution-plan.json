@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "AgentAuditEntry": {
+      "properties": {
+        "agent": {
+          "title": "Agent",
+          "type": "string"
+        },
+        "finding": {
+          "title": "Finding",
+          "type": "string"
+        },
+        "decision": {
+          "title": "Decision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "agent",
+        "finding",
+        "decision"
+      ],
+      "title": "AgentAuditEntry",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "recommended_carrier": {
+      "title": "Recommended Carrier",
+      "type": "string"
+    },
+    "recommended_mode": {
+      "title": "Recommended Mode",
+      "type": "string"
+    },
+    "estimated_cost": {
+      "title": "Estimated Cost",
+      "type": "number"
+    },
+    "estimated_eta_days": {
+      "title": "Estimated Eta Days",
+      "type": "integer"
+    },
+    "cost_vs_penalty": {
+      "title": "Cost Vs Penalty",
+      "type": "string"
+    },
+    "audit_trail": {
+      "items": {
+        "$ref": "#/$defs/AgentAuditEntry"
+      },
+      "title": "Audit Trail",
+      "type": "array"
+    },
+    "status": {
+      "default": "pending_approval",
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "recommended_carrier",
+    "recommended_mode",
+    "estimated_cost",
+    "estimated_eta_days",
+    "cost_vs_penalty",
+    "audit_trail"
+  ],
+  "title": "ResolutionPlan",
+  "type": "object"
+}

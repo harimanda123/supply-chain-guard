@@ -1,0 +1,81 @@
+{
+  "properties": {
+    "carrier_id": {
+      "title": "Carrier Id",
+      "type": "string"
+    },
+    "carrier_name": {
+      "title": "Carrier Name",
+      "type": "string"
+    },
+    "mode": {
+      "title": "Mode",
+      "type": "string"
+    },
+    "origin_port": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Origin Port"
+    },
+    "dest_port": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dest Port"
+    },
+    "transit_days": {
+      "title": "Transit Days",
+      "type": "integer"
+    },
+    "rate_per_unit": {
+      "title": "Rate Per Unit",
+      "type": "number"
+    },
+    "availability_date": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Availability Date"
+    },
+    "reliability_score": {
+      "title": "Reliability Score",
+      "type": "number"
+    },
+    "last_updated_at": {
+      "format": "date-time",
+      "title": "Last Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "carrier_id",
+    "carrier_name",
+    "mode",
+    "transit_days",
+    "rate_per_unit",
+    "reliability_score",
+    "last_updated_at"
+  ],
+  "title": "CarrierResponse",
+  "type": "object"
+}

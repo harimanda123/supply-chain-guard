@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "status",
+    "message"
+  ],
+  "title": "ApprovalResponse",
+  "type": "object"
+}
