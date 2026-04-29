@@ -1,6 +1,8 @@
 # Supply Chain Guard
 
-An **autonomous multi-agent system** that detects supply chain disruptions, evaluates recovery options, and proposes cost-justified solutions — all within seconds — freeing operations teams from hours of manual triage.
+An **agentic workflow engine** that detects supply chain disruptions, evaluates recovery options, and surfaces cost-justified resolution plans for human approval — all within seconds — freeing operations teams from hours of manual triage.
+
+Routing and financial decisions are deterministic Python. LLM agents provide reasoning narrative at each step. The human approves the final plan. **Predictable by design — because financial decisions require auditability, not autonomy.**
 
 ---
 
