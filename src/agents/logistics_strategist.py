@@ -14,7 +14,7 @@ TASK_CFG = TASKS["find_alternate_route"]
 
 
 def logistics_strategist_node(state: SupplyChainState) -> SupplyChainState:
-    llm = get_llm().bind_tools(CARRIER_TOOLS)
+    llm = get_llm()
 
     # ── Fetch live carriers from DB; fall back to state pre-loaded options ──────
     live_carriers = query_carriers.invoke({}) or []

@@ -14,7 +14,7 @@ TASK_CFG = TASKS["audit_compliance"]
 
 
 def compliance_auditor_node(state: SupplyChainState) -> SupplyChainState:
-    llm = get_llm().bind_tools(COMPLIANCE_TOOLS)
+    llm = get_llm()
 
     # ── Fetch live compliance data from DB ──────────────────────────────────
     carrier_id = state.get("proposed_carrier_id", "")

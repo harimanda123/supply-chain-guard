@@ -14,7 +14,7 @@ TASK_CFG = TASKS["validate_financials"]
 
 
 def financial_controller_node(state: SupplyChainState) -> SupplyChainState:
-    llm = get_llm().bind_tools(FINANCIAL_TOOLS)
+    llm = get_llm()
 
     # ── Fetch live financial rules from DB ────────────────────────────────────
     first_sku = state["affected_skus"][0]["sku"] if state["affected_skus"] else ""

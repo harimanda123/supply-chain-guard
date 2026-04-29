@@ -14,7 +14,7 @@ TASK_CFG = TASKS["assess_inventory_impact"]
 
 
 def inventory_analyst_node(state: SupplyChainState) -> SupplyChainState:
-    llm = get_llm().bind_tools(INVENTORY_TOOLS)
+    llm = get_llm()
 
     affected_skus = ", ".join(
         [f"{s['sku']} (qty: {s['qty']})" for s in state["affected_skus"]]

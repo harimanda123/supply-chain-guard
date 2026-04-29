@@ -274,7 +274,8 @@ async def receive_disruption(
         status="received",
     )
     db.add(event)
-    await db.flush()  # assigns event_id before background task is queued
+    await db.flush()  # assigns event_id
+    await db.commit()  # commit before background task reads the event
 
     background_tasks.add_task(_run_pipeline, event.event_id)
 
