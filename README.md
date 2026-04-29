@@ -203,48 +203,36 @@ best = pool[idx]   # iter 1→index 0 (best), iter 2→index 1, etc.
 
 ## Technology Choices
 
-### Why LangGraph and not CrewAI?
+### Why LangGraph?
 
-CrewAI is designed for **collaborative, open-ended tasks** — agents communicate freely to reach a goal. That works well for research or content generation where the path to the answer doesn't matter. It breaks down for supply chain triage, which is a **business process with financial and compliance consequences**.
-
-**The core problem with CrewAI for this use case:**
-- No guaranteed execution order — nothing stops the Financial Controller running before inventory is even assessed
-- Agents pass messages as free-form strings — extracting `proposed_cost = 7500.0` reliably from an LLM conversation is fragile
-- The rejection-retry loop would need to be implemented via agent prompting — fragile and non-deterministic
-- No built-in iteration cap — a loop could run forever
-- Audit trail is a chat history, not a structured per-decision record
-
-**LangGraph models the workflow as an explicit state machine.** Every node, every transition, and every exit condition is declared in code:
+Supply chain triage is a **business process with financial and compliance consequences** — it needs to be predictable, auditable, and bounded, not creative. LangGraph models the workflow as an explicit state machine where every node, every transition, and every exit condition is declared in code:
 
 ```python
-# Every step is explicit — no emergent behaviour
 graph.add_edge("inventory_analyst", "logistics_strategist")
 graph.add_edge("logistics_strategist", "financial_controller")
 graph.add_conditional_edges(
     "financial_controller",
     should_continue,          # plain Python function — fully testable
     {
-        "compliance_auditor": "compliance_auditor",  # approved
+        "compliance_auditor": "compliance_auditor",      # approved
         "logistics_strategist": "logistics_strategist",  # rejected — loop back
-        "escalate": "escalate",  # max iterations hit
+        "escalate": "escalate",                          # max iterations hit
     },
 )
 ```
 
-**How it works in this project:**
+**How it's used in this project:**
 
 | LangGraph concept | How it's used here |
 |---|---|
 | `StateGraph` | The entire pipeline — 4 agent nodes + 2 terminal nodes |
-| `SupplyChainState` TypedDict | Shared typed state passed between every node — `proposed_cost`, `financially_approved`, `iteration`, `audit_trail`, etc. |
+| `SupplyChainState` TypedDict | Typed state shared across all nodes — `proposed_cost`, `financially_approved`, `iteration`, `audit_trail`, etc. |
 | Fixed edges | `inventory_analyst → logistics_strategist → financial_controller` always in order |
 | Conditional edges | After `financial_controller`: approved → `compliance_auditor`, rejected → back to `logistics_strategist`, exhausted → `escalate` |
-| `should_continue()` | Pure Python routing function — increments `iteration`, checks `max_iterations`, returns next node name |
-| `resolved` / `escalate` nodes | Terminal nodes that set `resolution_status` before `END` |
+| `should_continue()` | Pure Python routing — increments `iteration`, checks `max_iterations`, returns next node name |
+| Terminal nodes | `resolved` / `escalate` set `resolution_status` before `END` |
 
-**Result:** The routing logic (`should_continue`, `resolve_or_escalate`) is plain Python with no LLM involved — it can be unit tested in isolation. The LLM is only used for reasoning text (the `finding` field in each audit entry), never for routing decisions.
-
-> **One-line summary:** CrewAI is for agents that collaborate. LangGraph is for processes that must be correct.
+The routing logic is plain Python with no LLM involved — it can be unit tested in isolation. The LLM is only used to generate reasoning text (the `finding` in each audit entry), never for routing decisions. This separation is what makes the system trustworthy for financial decisions.
 
 ### Why LangSmith?
 
