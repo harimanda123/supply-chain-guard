@@ -50,7 +50,7 @@ Supply Chain Guard replaces the manual triage loop with an **autonomous agent pi
 - 4 specialist AI agents run in sequence, each with a defined role and decision authority
 - If the Financial Controller rejects a proposal (too expensive), the Logistics Strategist is automatically retried with the next best option — no human needed until a valid plan is ready
 - The final resolution (carrier, cost, compliance status, cost-vs-penalty summary) is surfaced to a human reviewer for a single approval click
-- The approved booking is written back to the TMS via a carrier API adapter
+- Once approved, the ERP receives the response and handles the TMS booking using its own integration
 
 **Result:** Manual triage time drops from hours to **under 2 minutes**. The human reviewer only sees pre-validated, cost-justified options.
 
@@ -611,25 +611,6 @@ ERP  →  creates TMS booking using its own integration
 ```
 
 This keeps Supply Chain Guard stateless after approval. The ERP owns retry logic, booking confirmation, and error handling — it does not need to grant Supply Chain Guard outbound access to any TMS.
-
-### ERP Input Adapters (`src/adapters/erp_input.py`)
-
-Every ERP has its own proprietary alert payload format. Register a transform function to normalise it into the standard `DisruptionEvent` format:
-
-```python
-@register_transform("erp_system_a")
-def transform_erp_a(raw: dict) -> dict:
-    return {
-        "source_system": "erp_system_a",
-        "event_type": raw["alert_type"],
-        "shipment_id": raw["po_number"],
-        ...
-    }
-```
-
-Supported out of the box: `erp_system_a`, `erp_system_b`, `erp_system_c`. Adding a 4th is one decorated function.
-
-POST to `/api/v1/events/erp/{source_system}` with the raw ERP payload — the pipeline never sees the proprietary format.
 
 ---
 

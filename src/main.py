@@ -1,6 +1,16 @@
 from contextlib import asynccontextmanager
 import os
 
+# ── LangSmith — must be set before any LangChain imports ─────────────────────
+# Read directly from env (dotenv not loaded yet at this point, so use python-dotenv)
+from dotenv import dotenv_values
+_env = dotenv_values(".env")
+if _env.get("LANGSMITH_TRACING", "").lower() == "true" and _env.get("LANGSMITH_API_KEY", ""):
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = _env["LANGSMITH_API_KEY"]
+    os.environ["LANGCHAIN_PROJECT"] = _env.get("LANGSMITH_PROJECT", "supply-chain-guard")
+# ─────────────────────────────────────────────────────────────────────────────
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,15 +21,8 @@ from src.api.carriers import router as carriers_router
 from src.api.financials import router as financials_router
 from src.api.inventory import router as inventory_router
 from src.api.approvals import router as approvals_router
-from src.api.pipeline import router as pipeline_router
 
 settings = get_settings()
-
-# ── LangSmith tracing ─────────────────────────────────────────────────────────
-if settings.langsmith_tracing and settings.langsmith_api_key:
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
-    os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
 
 
 @asynccontextmanager
@@ -53,7 +56,6 @@ app.include_router(carriers_router)
 app.include_router(financials_router)
 app.include_router(inventory_router)
 app.include_router(approvals_router)
-app.include_router(pipeline_router)
 
 
 @app.get("/health", tags=["health"])
