@@ -50,17 +50,22 @@ Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
     response = llm.invoke(prompt)
     finding = response.content
 
-    # Deterministic carrier selection from available options
+    # Deterministic carrier selection — try highest-reliability first, then step
+    # down to cheaper options on each Financial Controller rejection.
+    # Sort: reliability descending (best quality first), cost ascending as tiebreaker.
     options = carrier_options
     if options:
         viable = [
             c for c in options
             if c["transit_days"] <= (state["days_of_buffer"] + state["delay_days"])
         ]
-        # On re-iterations pick pricier-but-faster if cheaper failed; sort ascending by cost
-        sort_key = "rate_per_unit"
-        best = sorted(viable, key=lambda x: x[sort_key])[0] if viable \
-            else sorted(options, key=lambda x: x[sort_key])[0]
+        pool = sorted(
+            viable if viable else options,
+            key=lambda x: (-x["reliability_score"], x["rate_per_unit"]),
+        )
+        # iteration starts at 1; index 0 on first pass, 1 on second, etc.
+        idx = min(state.get("iteration", 1) - 1, len(pool) - 1)
+        best = pool[idx]
 
         proposed_carrier_name = best["carrier_name"]
         proposed_carrier_id = best.get("carrier_id", "")

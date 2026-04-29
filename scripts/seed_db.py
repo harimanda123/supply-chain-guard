@@ -149,7 +149,7 @@ async def _seed_financial_rules(session: AsyncSession) -> None:
     # SKU-specific rule
     sku_rule = FinancialRule(
         sku_id="SKU-9921",
-        max_expedite_budget=15000.0,
+        max_expedite_budget=9500.0,
         auto_approve_ceiling=5000.0,
         penalty_per_day=50000.0,
         baseline_freight_cost=3200.0,
