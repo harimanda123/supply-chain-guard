@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +13,12 @@ from src.api.inventory import router as inventory_router
 from src.api.approvals import router as approvals_router
 
 settings = get_settings()
+
+# ── LangSmith tracing ─────────────────────────────────────────────────────────
+if settings.langsmith_tracing and settings.langsmith_api_key:
+    os.environ["LANGCHAIN_TRACING_V2"] = "true"
+    os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
+    os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
 
 
 @asynccontextmanager

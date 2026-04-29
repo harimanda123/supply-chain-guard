@@ -185,7 +185,11 @@ async def _run_pipeline(event_id: str) -> None:
         # ── Run pipeline ──────────────────────────────────────────────────────
         try:
             final_state = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: pipeline.invoke(initial_state)
+                None,
+                lambda: pipeline.invoke(
+                    initial_state,
+                    config={"run_name": f"disruption:{event_id}"},
+                ),
             )
             event.status = final_state.get("resolution_status", "processing")
         except Exception as exc:  # noqa: BLE001

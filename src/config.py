@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="")
     ollama_base_url: str = Field(default="http://localhost:11434")
 
+    # LangSmith tracing — optional, leave blank to disable
+    langsmith_api_key: str = Field(default="")
+    langsmith_project: str = Field(default="supply-chain-guard")
+    langsmith_tracing: bool = Field(default=False)
+
 
 @lru_cache
 def get_settings() -> Settings:

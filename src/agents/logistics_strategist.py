@@ -1,6 +1,7 @@
 import yaml
 from src.config import get_llm
 from src.graph.state import SupplyChainState, AgentAuditEntry
+from src.tools.carrier_tools import CARRIER_TOOLS, query_carriers
 
 with open("config/agents.yaml") as f:
     AGENTS = yaml.safe_load(f)
@@ -13,13 +14,17 @@ TASK_CFG = TASKS["find_alternate_route"]
 
 
 def logistics_strategist_node(state: SupplyChainState) -> SupplyChainState:
-    llm = get_llm()
+    llm = get_llm().bind_tools(CARRIER_TOOLS)
+
+    # ── Fetch live carriers from DB; fall back to state pre-loaded options ──────
+    live_carriers = query_carriers.invoke({}) or []
+    carrier_options = live_carriers if live_carriers else state.get("carrier_options", [])
 
     carrier_options_text = "\n".join([
         f"- {c['carrier_name']} | mode: {c['mode']} | "
         f"cost: ${c['rate_per_unit']} | transit: {c['transit_days']} days | "
         f"reliability: {c['reliability_score']}/100"
-        for c in state.get("carrier_options", [])
+        for c in carrier_options
     ]) or "No pre-loaded carriers. Suggest best industry-standard options."
 
     prompt = f"""
@@ -36,7 +41,7 @@ Task: {TASK_CFG['description'].format(
 Expected output: {TASK_CFG['expected_output']}
 
 Iteration {state.get('iteration', 1)} of {state.get('max_iterations', 5)}.
-{"Previous proposal was rejected by Financial Controller. Find a more cost-effective option." 
+{"Previous proposal was rejected by Financial Controller. Find a more cost-effective option."
  if state.get('iteration', 1) > 1 else ""}
 
 Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
@@ -45,16 +50,17 @@ Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
     response = llm.invoke(prompt)
     finding = response.content
 
-    # Parse best carrier from available options
-    options = state.get("carrier_options", [])
+    # Deterministic carrier selection from available options
+    options = carrier_options
     if options:
-        # Sort by cost, pick cheapest that meets deadline
         viable = [
             c for c in options
             if c["transit_days"] <= (state["days_of_buffer"] + state["delay_days"])
         ]
-        best = sorted(viable, key=lambda x: x["rate_per_unit"])[0] if viable \
-            else sorted(options, key=lambda x: x["rate_per_unit"])[0]
+        # On re-iterations pick pricier-but-faster if cheaper failed; sort ascending by cost
+        sort_key = "rate_per_unit"
+        best = sorted(viable, key=lambda x: x[sort_key])[0] if viable \
+            else sorted(options, key=lambda x: x[sort_key])[0]
 
         proposed_carrier_name = best["carrier_name"]
         proposed_carrier_id = best.get("carrier_id", "")
@@ -62,7 +68,6 @@ Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
         proposed_cost = best["rate_per_unit"]
         proposed_transit_days = best["transit_days"]
     else:
-        # LLM suggested — use defaults
         proposed_carrier_name = "Industry Standard Air Freight"
         proposed_carrier_id = ""
         proposed_mode = "air"
@@ -78,6 +83,15 @@ Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
 
     return {
         **state,
+        "proposed_carrier_name": proposed_carrier_name,
+        "proposed_carrier_id": proposed_carrier_id,
+        "proposed_mode": proposed_mode,
+        "proposed_cost": proposed_cost,
+        "proposed_transit_days": proposed_transit_days,
+        "carrier_options": carrier_options,
+        "audit_trail": state.get("audit_trail", []) + [audit_entry],
+    }
+
         "proposed_carrier_name": proposed_carrier_name,
         "proposed_carrier_id": proposed_carrier_id,
         "proposed_mode": proposed_mode,
