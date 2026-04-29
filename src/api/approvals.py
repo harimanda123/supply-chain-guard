@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
@@ -8,6 +9,7 @@ from src.models.disruption_event import DisruptionEvent
 from src.schemas.resolution import (
     ResolutionPlan, ApprovalRequest, ApprovalResponse, AgentAuditEntry,
 )
+from src import events as event_bus
 
 router = APIRouter(prefix="/api/v1/approvals", tags=["approvals"])
 
@@ -117,9 +119,79 @@ async def approve_resolution(
         "reviewed_at": datetime.utcnow().isoformat(),
     }
 
+    # ── TMS writeback on approval ─────────────────────────────────────────────
+    booking_ref = ""
+    if payload.approved:
+        from src.adapters.tms_output import execute_writeback, BookingRequest
+        import os
+
+        raw = ev.raw_payload or {}
+        booking = BookingRequest(
+            event_id=event_id,
+            carrier_name=raw.get("proposed_carrier_name", ""),
+            carrier_id=raw.get("proposed_carrier_id", ""),
+            mode=raw.get("proposed_mode", ""),
+            estimated_cost=raw.get("proposed_cost", 0.0),
+            transit_days=raw.get("proposed_transit_days", 0),
+            shipment_id=ev.shipment_id,
+            affected_skus=ev.affected_skus or [],
+            hard_deadline=raw.get("hard_deadline", ""),
+            reviewer_note=payload.reviewer_note or "",
+        )
+        target = os.environ.get("TMS_ADAPTER", "log_only")
+        confirmation = await execute_writeback(target, booking)
+        booking_ref = confirmation.booking_reference
+        ev.raw_payload = {
+            **ev.raw_payload,
+            "booking_reference": booking_ref,
+            "booking_status": confirmation.status,
+            "booking_confirmed_at": confirmation.confirmed_at,
+        }
+
     message = (
-        "Resolution approved. Booking confirmation triggered."
+        f"Resolution approved. Booking reference: {booking_ref or 'pending'}."
         if payload.approved
         else "Resolution rejected by reviewer."
     )
     return ApprovalResponse(event_id=event_id, status=ev.status, message=message)
+
+
+@router.get(
+    "/stream",
+    summary="SSE stream — all resolution events (use event_id filter for one event)",
+    response_class=StreamingResponse,
+)
+async def stream_all_resolutions() -> StreamingResponse:
+    """
+    Server-Sent Events stream for all resolution completions.
+    Connect once and receive a JSON payload for every event that reaches
+    pending_approval, escalated, or error status.
+    """
+    return StreamingResponse(
+        event_bus.subscribe("*"),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get(
+    "/stream/{event_id}",
+    summary="SSE stream scoped to a single disruption event",
+    response_class=StreamingResponse,
+)
+async def stream_resolution(event_id: str) -> StreamingResponse:
+    """
+    Server-Sent Events stream for a specific disruption event.
+    Emits one payload when the pipeline completes or escalates.
+    """
+    return StreamingResponse(
+        event_bus.subscribe(event_id),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )

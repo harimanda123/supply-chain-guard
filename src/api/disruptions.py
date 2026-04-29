@@ -14,6 +14,7 @@ from src.models.financial_rule import FinancialRule
 from src.models.compliance_registry import ComplianceRegistry
 from src.schemas.disruption import DisruptionEventCreate, DisruptionEventResponse
 from src.schemas.resolution import ResolutionPlan, AgentAuditEntry
+from src import events as event_bus
 
 router = APIRouter(prefix="/api/v1/events", tags=["disruptions"])
 
@@ -180,6 +181,11 @@ async def _run_pipeline(event_id: str) -> None:
             )
             event.status = "escalated_stale_data"
             await session.commit()
+            event_bus.publish(event_id, {
+                "event_id": event_id,
+                "status": "escalated_stale_data",
+                "reason": "Inventory data older than staleness threshold",
+            })
             return
 
         # ── Run pipeline ──────────────────────────────────────────────────────
@@ -191,13 +197,50 @@ async def _run_pipeline(event_id: str) -> None:
                     config={"run_name": f"disruption:{event_id}"},
                 ),
             )
-            event.status = final_state.get("resolution_status", "processing")
+            resolution_status = final_state.get("resolution_status", "processing")
+            event.status = resolution_status
+
+            # Persist resolution fields into raw_payload so approvals can read them
+            event.raw_payload = {
+                **(event.raw_payload or {}),
+                "proposed_carrier_name": final_state.get("proposed_carrier_name", ""),
+                "proposed_carrier_id": final_state.get("proposed_carrier_id", ""),
+                "proposed_mode": final_state.get("proposed_mode", ""),
+                "proposed_cost": final_state.get("proposed_cost", 0.0),
+                "proposed_transit_days": final_state.get("proposed_transit_days", 0),
+                "cost_vs_penalty_summary": final_state.get("cost_vs_penalty_summary", ""),
+                "savings_achieved": final_state.get("savings_achieved", 0.0),
+                "audit_trail": final_state.get("audit_trail", []),
+                "urgency_level": final_state.get("urgency_level", ""),
+                "days_of_buffer": final_state.get("days_of_buffer", 0),
+                "hard_deadline": final_state.get("hard_deadline", ""),
+                "compliance_checks_passed": final_state.get("compliance_checks_passed", []),
+                "compliance_checks_failed": final_state.get("compliance_checks_failed", []),
+            }
+
+            # Publish SSE event so connected clients update instantly
+            event_bus.publish(event_id, {
+                "event_id": event_id,
+                "status": resolution_status,
+                "recommended_carrier": final_state.get("proposed_carrier_name", ""),
+                "recommended_mode": final_state.get("proposed_mode", ""),
+                "estimated_cost": final_state.get("proposed_cost", 0.0),
+                "cost_vs_penalty": final_state.get("cost_vs_penalty_summary", ""),
+                "urgency_level": final_state.get("urgency_level", ""),
+                "audit_trail": final_state.get("audit_trail", []),
+            })
+
         except Exception as exc:  # noqa: BLE001
             event.status = "error"
             event.raw_payload = {
                 **(event.raw_payload or {}),
                 "pipeline_error": str(exc),
             }
+            event_bus.publish(event_id, {
+                "event_id": event_id,
+                "status": "error",
+                "error": str(exc),
+            })
 
         await session.commit()
 
@@ -253,4 +296,53 @@ async def get_disruption(
     event = result.scalar_one_or_none()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+    return DisruptionEventResponse.model_validate(event)
+
+
+@router.post(
+    "/erp/{source_system}",
+    response_model=DisruptionEventResponse,
+    status_code=202,
+    summary="ERP-specific webhook — transforms proprietary payload and forwards to core pipeline",
+)
+async def receive_erp_event(
+    source_system: str,
+    raw_payload: dict,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> DisruptionEventResponse:
+    """
+    Accepts a raw ERP payload and applies the registered transform for
+    source_system (kinaxis, sap_ewm, oracle_otm, or any custom adapter).
+    Falls back to a passthrough transform for conforming payloads.
+    """
+    from src.adapters.erp_input import transform
+    from src.schemas.disruption import DisruptionEventCreate
+
+    try:
+        normalised = transform(source_system, raw_payload)
+        payload = DisruptionEventCreate.model_validate(normalised)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"ERP payload transform failed for '{source_system}': {exc}",
+        ) from exc
+
+    event = DisruptionEvent(
+        source_system=payload.source_system,
+        event_type=payload.event_type.value,
+        shipment_id=payload.shipment_id,
+        affected_skus=[s.model_dump() for s in payload.affected_skus],
+        location=payload.location.model_dump() if payload.location else None,
+        original_eta=payload.original_eta,
+        revised_eta=payload.revised_eta,
+        severity=payload.severity.value,
+        raw_payload=raw_payload,   # store original ERP payload for replay
+        status="received",
+    )
+    db.add(event)
+    await db.flush()
+
+    background_tasks.add_task(_run_pipeline, event.event_id)
+
     return DisruptionEventResponse.model_validate(event)
