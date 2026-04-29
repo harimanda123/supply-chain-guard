@@ -11,10 +11,10 @@ Register a transform function for each source system:
 
     from src.adapters.erp_input import register_transform
 
-    @register_transform("kinaxis")
-    def kinaxis_transform(raw: dict) -> dict:
+    @register_transform("my_erp")
+    def my_erp_transform(raw: dict) -> dict:
         return {
-            "source_system": "kinaxis",
+            "source_system": "my_erp",
             "event_type": raw["disruptionType"],
             ...
         }
@@ -58,11 +58,11 @@ def _passthrough_transform(raw: dict) -> dict:
 
 # ── Built-in transforms ───────────────────────────────────────────────────────
 
-@register_transform("kinaxis")
-def _kinaxis_transform(raw: dict) -> dict:
+@register_transform("erp_system_a")
+def _erp_system_a_transform(raw: dict) -> dict:
     """
-    Kinaxis RapidResponse disruption event → engine schema.
-    Expected Kinaxis fields: disruptionType, shipmentRef, skuList,
+    ERP System A disruption event → engine schema.
+    Expected fields: disruptionType, shipmentRef, skuList,
     originPort, destPort, originalArrival, revisedArrival, impactLevel
     """
     sku_list = raw.get("skuList", [])
@@ -80,7 +80,7 @@ def _kinaxis_transform(raw: dict) -> dict:
     }
 
     return {
-        "source_system": "kinaxis",
+        "source_system": "erp_system_a",
         "event_type": event_type_map.get(raw.get("disruptionType", ""), "vessel_delay"),
         "shipment_id": raw.get("shipmentRef", ""),
         "affected_skus": affected_skus,
@@ -93,11 +93,11 @@ def _kinaxis_transform(raw: dict) -> dict:
     }
 
 
-@register_transform("sap_ewm")
-def _sap_ewm_transform(raw: dict) -> dict:
+@register_transform("erp_system_b")
+def _erp_system_b_transform(raw: dict) -> dict:
     """
-    SAP Extended Warehouse Management disruption notification → engine schema.
-    Expected SAP fields: EventType, DeliveryDoc, MaterialList,
+    ERP System B disruption notification → engine schema.
+    Expected fields: EventType, DeliveryDoc, MaterialList,
     OriginalGoodsReceiptDate, ExpectedGoodsReceiptDate, Priority
     """
     material_list = raw.get("MaterialList", [])
@@ -115,7 +115,7 @@ def _sap_ewm_transform(raw: dict) -> dict:
     }
 
     return {
-        "source_system": "sap_ewm",
+        "source_system": "erp_system_b",
         "event_type": event_type_map.get(raw.get("EventType", ""), "vessel_delay"),
         "shipment_id": raw.get("DeliveryDoc", ""),
         "affected_skus": affected_skus,
@@ -126,11 +126,11 @@ def _sap_ewm_transform(raw: dict) -> dict:
     }
 
 
-@register_transform("oracle_otm")
-def _oracle_otm_transform(raw: dict) -> dict:
+@register_transform("erp_system_c")
+def _erp_system_c_transform(raw: dict) -> dict:
     """
-    Oracle Transportation Management shipment exception → engine schema.
-    Expected OTM fields: exceptionCode, shipmentGid, commodities,
+    ERP System C shipment exception → engine schema.
+    Expected fields: exceptionCode, shipmentGid, commodities,
     plannedArrival, revisedArrival, severity
     """
     commodities = raw.get("commodities", [])
@@ -147,7 +147,7 @@ def _oracle_otm_transform(raw: dict) -> dict:
     }
 
     return {
-        "source_system": "oracle_otm",
+        "source_system": "erp_system_c",
         "event_type": code_map.get(raw.get("exceptionCode", ""), "vessel_delay"),
         "shipment_id": raw.get("shipmentGid", ""),
         "affected_skus": affected_skus,

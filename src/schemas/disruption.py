@@ -29,7 +29,7 @@ class Location(BaseModel):
 
 
 class DisruptionEventCreate(BaseModel):
-    source_system: str = Field(..., example="kinaxis")
+    source_system: str = Field(..., example="erp_system_a")
     event_type: EventType
     shipment_id: str = Field(..., example="SHP-20240427-001")
     affected_skus: list[AffectedSKU]

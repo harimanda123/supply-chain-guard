@@ -9,7 +9,7 @@ Seeds:
   - inventory position for SKU-9921
   - production schedule for SKU-9921
   - financial rules for SKU-9921 (and a global default)
-"""
+Carrier names and system identifiers in this script are generic placeholders."""
 import asyncio
 from datetime import datetime, timezone, timedelta
 
@@ -38,7 +38,7 @@ async def seed() -> None:
 async def _seed_carriers(session: AsyncSession) -> None:
     carriers = [
         {
-            "carrier_name": "DHL Express",
+            "carrier_name": "Express Air Freight",
             "mode": "air",
             "origin_port": "CNSHA",
             "dest_port": "USLAX",
@@ -53,7 +53,7 @@ async def _seed_carriers(session: AsyncSession) -> None:
             },
         },
         {
-            "carrier_name": "Flexport Sea-Air",
+            "carrier_name": "Sea-Air Logistics",
             "mode": "sea-air",
             "origin_port": "CNSHA",
             "dest_port": "USLAX",
@@ -68,7 +68,7 @@ async def _seed_carriers(session: AsyncSession) -> None:
             },
         },
         {
-            "carrier_name": "DB Schenker Road",
+            "carrier_name": "Regional Road Carrier",
             "mode": "road",
             "origin_port": None,
             "dest_port": None,
@@ -83,7 +83,7 @@ async def _seed_carriers(session: AsyncSession) -> None:
             },
         },
         {
-            "carrier_name": "Blacklisted Freight Co",
+            "carrier_name": "Restricted Carrier Co",
             "mode": "sea",
             "origin_port": "CNSHA",
             "dest_port": "USLAX",

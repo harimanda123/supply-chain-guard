@@ -2,16 +2,16 @@
 TMS Output Adapter — pluggable booking writeback layer.
 
 When a human approves a resolution, the engine calls the registered
-output adapter for the relevant TMS/carrier system to confirm the booking.
+output adapter for the target carrier/TMS system to confirm the booking.
 
 Usage
 -----
-Register a writeback function for each TMS target:
+Register a writeback function for each target system:
 
     from src.adapters.tms_output import register_writeback
 
-    @register_writeback("dhl_api")
-    async def dhl_writeback(booking: BookingRequest) -> BookingConfirmation:
+    @register_writeback("my_carrier_api")
+    async def my_carrier_writeback(booking: BookingRequest) -> BookingConfirmation:
         ...
 
 If no adapter is registered for a target, the engine logs the booking
@@ -150,25 +150,26 @@ async def _generic_http_writeback(booking: BookingRequest) -> BookingConfirmatio
         )
 
 
-@register_writeback("dhl_api")
-async def _dhl_api_writeback(booking: BookingRequest) -> BookingConfirmation:
+@register_writeback("carrier_api_stub")
+async def _carrier_api_stub_writeback(booking: BookingRequest) -> BookingConfirmation:
     """
-    DHL Express API adapter stub.
-    Replace the stub body with real DHL shipment creation API calls.
+    Carrier API stub adapter.
+    Replace this body with real carrier API calls.
+    Configure via CARRIER_API_KEY and CARRIER_API_URL environment variables.
     """
     import os
-    api_key = os.environ.get("DHL_API_KEY", "")
+    api_key = os.environ.get("CARRIER_API_KEY", "")
     if not api_key:
-        logger.warning("DHL_API_KEY not set — falling back to log-only adapter")
+        logger.warning("CARRIER_API_KEY not set — falling back to log-only adapter")
         return await _log_only_writeback(booking)
 
-    # Stub: in production, call DHL Shipment Tracking / Booking API here
-    logger.info("DHL booking stub called for event %s", booking.event_id)
+    # Stub: replace with real carrier booking API call
+    logger.info("Carrier API stub called for event %s", booking.event_id)
     return BookingConfirmation(
         event_id=booking.event_id,
-        booking_reference=f"DHL-{booking.event_id[:8].upper()}",
-        carrier_name="DHL Express",
+        booking_reference=f"BOOKING-{booking.event_id[:8].upper()}",
+        carrier_name=booking.carrier_name,
         status="confirmed",
         confirmed_at=datetime.now(timezone.utc).isoformat(),
-        message="DHL booking stub — replace with real API call.",
+        message="Carrier API stub — replace with real API call.",
     )

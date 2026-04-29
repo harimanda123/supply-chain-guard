@@ -313,7 +313,7 @@ async def receive_erp_event(
 ) -> DisruptionEventResponse:
     """
     Accepts a raw ERP payload and applies the registered transform for
-    source_system (kinaxis, sap_ewm, oracle_otm, or any custom adapter).
+    source_system (erp_system_a, erp_system_b, erp_system_c, or any custom adapter).
     Falls back to a passthrough transform for conforming payloads.
     """
     from src.adapters.erp_input import transform

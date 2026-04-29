@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class CarrierCreate(BaseModel):
-    carrier_name: str = Field(..., example="DHL Express")
+    carrier_name: str = Field(..., example="Express Air Freight")
     mode: str = Field(..., example="air")
     origin_port: Optional[str] = Field(None, example="CNSHA")
     dest_port: Optional[str] = Field(None, example="USLAX")

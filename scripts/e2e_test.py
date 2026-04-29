@@ -50,7 +50,7 @@ async def run() -> None:
         revised_eta = datetime.now(timezone.utc) + timedelta(days=7)  # 5-day delay
 
         disruption_payload = {
-            "source_system": "kinaxis",
+            "source_system": "erp_system_a",
             "event_type": "port_strike",
             "shipment_id": "SHP-E2E-001",
             "affected_skus": [{"sku": "SKU-9921", "qty": 500}],
