@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables — never commit real secrets
+.env
+
+# Database
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# UV
+.python-version
+uv.lock
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

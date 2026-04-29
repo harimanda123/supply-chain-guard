@@ -1,0 +1,95 @@
+assess_disruption:
+  description: >
+    A disruption event has been received with the following details:
+    {event_details}
+
+    Assess the severity and determine which agents need to be
+    activated. Check if the event has all required fields and
+    return a structured assessment with the event_id, severity,
+    affected SKUs, and recommended next action.
+  expected_output: >
+    A structured assessment containing: event_id, severity level,
+    list of affected SKUs with quantities, delay in days, and
+    whether immediate expediting is required (true/false).
+
+assess_inventory_impact:
+  description: >
+    A shipment disruption has been confirmed for SKU(s): {affected_skus}
+    The shipment is delayed by {delay_days} days.
+
+    Using the inventory data provided:
+    - On hand quantity: {on_hand_qty}
+    - Safety stock: {safety_stock_qty}
+    - Days of cover: {days_of_cover}
+    - Hard deadline: {hard_deadline}
+    - Production line shutdown cost: ${shutdown_cost_per_day}/day
+
+    Determine if we can wait for the original shipment or if we
+    must expedite. Calculate exactly how many days of buffer
+    remain before production stops.
+  expected_output: >
+    A structured inventory impact report containing: days_of_buffer
+    remaining, can_wait (true/false), urgency_level (critical/high/
+    medium), hard_deadline, and shutdown_risk_per_day in USD.
+
+find_alternate_route:
+  description: >
+    The inventory assessment has confirmed we must expedite.
+    Hard deadline: {hard_deadline}
+    Days of buffer remaining: {days_of_buffer}
+
+    Using the available carrier options:
+    {carrier_options}
+
+    Find the best alternate route that arrives before the hard
+    deadline. Consider all modes: air, sea-air hybrid, road.
+    Propose the top option with carrier name, mode, cost,
+    and transit days.
+  expected_output: >
+    A structured route proposal containing: carrier_name, mode,
+    estimated_cost in USD, transit_days, arrival_date, and
+    reasoning for why this route was selected over alternatives.
+
+validate_financials:
+  description: >
+    The Logistics Strategist has proposed the following route:
+    - Carrier: {carrier_name}
+    - Mode: {mode}
+    - Estimated cost: ${estimated_cost}
+    - Transit days: {transit_days}
+
+    Financial rules for this SKU:
+    - Max expedite budget: ${max_expedite_budget}
+    - Penalty per day of shutdown: ${penalty_per_day}
+    - Auto approve ceiling: ${auto_approve_ceiling}
+
+    Validate whether the proposed cost is justified given the
+    penalty. Approve if cost is within budget and less than
+    the penalty. Reject with a reason if not.
+  expected_output: >
+    A structured financial decision containing: approved (true/false),
+    cost_vs_penalty_summary, savings_achieved in USD, and if
+    rejected, the reason and what the maximum acceptable cost
+    would be.
+
+audit_compliance:
+  description: >
+    The Financial Controller has approved the following carrier:
+    - Carrier: {carrier_name}
+    - Carrier ID: {carrier_id}
+
+    Compliance data for this carrier:
+    - Blacklisted: {is_blacklisted}
+    - Insurance valid: {insurance_valid}
+    - Insurance expiry: {insurance_expiry}
+    - Reliability score: {reliability_score}/100
+    - Certifications: {certifications}
+
+    Perform a final compliance check. The carrier must not be
+    blacklisted, must have valid insurance, and must have a
+    reliability score above 70. Approve or reject with clear
+    reasoning.
+  expected_output: >
+    A structured compliance result containing: cleared (true/false),
+    carrier_name, checks_passed (list), checks_failed (list),
+    and overall_risk_rating (low/medium/high).
