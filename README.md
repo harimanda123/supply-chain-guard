@@ -225,9 +225,18 @@ Every agent run — including loops — is traced automatically. For each disrup
 
 This is critical for debugging and for demonstrating to stakeholders that the system made the right decisions.
 
-### Why Groq?
+### LLM Provider — Bring Your Own
 
-Low latency, high throughput, free tier available. The agents only need structured text output (approve/reject decisions with reasoning) — not frontier model capability. `llama-3.1-8b-instant` on Groq gives sub-second LLM responses with a 500k tokens/day free limit.
+The system is provider-agnostic. Any LangChain-compatible LLM works — set `LLM_PROVIDER` and `LLM_MODEL` in `.env`:
+
+| Provider | `LLM_PROVIDER` | Recommended model | Notes |
+|---|---|---|---|
+| **Groq** | `groq` | `llama-3.1-8b-instant` | Free tier, sub-second latency, 500k tokens/day |
+| **OpenAI** | `openai` | `gpt-4o-mini` | Paid, reliable, widely available |
+| **Anthropic** | `anthropic` | `claude-3-5-haiku-20241022` | Paid, strong reasoning |
+| **Ollama** | `ollama` | `llama3.2` | Fully local, no API key, no cost |
+
+The agents only need structured text output (approve/reject decisions with reasoning) — a small/fast model is sufficient and far cheaper than a frontier model.
 
 ### Why FastAPI + SQLAlchemy async?
 
@@ -377,7 +386,7 @@ Interactive docs available at `http://localhost:8000/docs` after starting the se
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) package manager
-- A [Groq API key](https://console.groq.com) (free tier)
+- An LLM API key — [Groq](https://console.groq.com) (free tier), [OpenAI](https://platform.openai.com), [Anthropic](https://console.anthropic.com), or [Ollama](https://ollama.com) running locally
 - Optional: [LangSmith account](https://smith.langchain.com) for tracing
 
 ### 1. Clone and install
@@ -400,10 +409,13 @@ SECRET_KEY=change-me-in-production
 # Database
 DATABASE_URL=sqlite+aiosqlite:///./data/supply_chain_guard.db
 
-# LLM
-LLM_PROVIDER=groq
-LLM_MODEL=llama-3.1-8b-instant
-GROQ_API_KEY=gsk_your_key_here
+# LLM — choose one provider
+LLM_PROVIDER=groq                        # groq | openai | anthropic | ollama
+LLM_MODEL=llama-3.1-8b-instant           # any model supported by the provider
+GROQ_API_KEY=gsk_your_key_here           # only the active provider's key is needed
+# OPENAI_API_KEY=sk-...
+# ANTHROPIC_API_KEY=sk-ant-...
+# OLLAMA_BASE_URL=http://localhost:11434  # Ollama only, no key needed
 
 # LangSmith (optional — remove block to disable tracing)
 LANGSMITH_TRACING=true
@@ -454,9 +466,12 @@ curl http://localhost:8000/api/v1/events/disruption/{event_id}
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLM_PROVIDER` | `groq` | LLM provider (`groq` or `anthropic`) |
-| `LLM_MODEL` | `llama-3.1-8b-instant` | Model name for the provider |
-| `GROQ_API_KEY` | — | Groq API key |
+| `LLM_PROVIDER` | `groq` | `groq` \| `openai` \| `anthropic` \| `ollama` |
+| `LLM_MODEL` | `llama-3.1-8b-instant` | Any model name supported by the chosen provider |
+| `GROQ_API_KEY` | — | Groq API key (only needed when `LLM_PROVIDER=groq`) |
+| `OPENAI_API_KEY` | — | OpenAI API key (only needed when `LLM_PROVIDER=openai`) |
+| `ANTHROPIC_API_KEY` | — | Anthropic API key (only needed when `LLM_PROVIDER=anthropic`) |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama base URL (only needed when `LLM_PROVIDER=ollama`) |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./data/supply_chain_guard.db` | SQLAlchemy async DB URL |
 | `LANGSMITH_TRACING` | `false` | Enable LangSmith tracing (`true`/`false`) |
 | `LANGSMITH_API_KEY` | — | LangSmith API key |
