@@ -1,0 +1,27 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	inventory_analyst(inventory_analyst)
+	logistics_strategist(logistics_strategist)
+	financial_controller(financial_controller)
+	compliance_auditor(compliance_auditor)
+	escalate(escalate)
+	resolved(resolved)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> inventory_analyst;
+	compliance_auditor -.-> escalate;
+	compliance_auditor -.-> resolved;
+	financial_controller -.-> compliance_auditor;
+	financial_controller -.-> escalate;
+	financial_controller -.-> logistics_strategist;
+	inventory_analyst --> logistics_strategist;
+	logistics_strategist --> financial_controller;
+	escalate --> __end__;
+	resolved --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

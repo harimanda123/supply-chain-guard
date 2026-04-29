@@ -188,14 +188,43 @@ async def _run_pipeline(event_id: str) -> None:
             })
             return
 
-        # ── Run pipeline ──────────────────────────────────────────────────────
+        # ── Run pipeline with per-node streaming ──────────────────────────────
         try:
-            final_state = await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: pipeline.invoke(
+            def _stream_pipeline() -> dict:
+                """
+                Stream the pipeline, emitting an SSE event after each node,
+                and return the final merged state without running the LLM twice.
+                stream_mode='updates' gives per-node diffs.
+                stream_mode='values'  gives full state snapshots.
+                We use 'values' so the last snapshot IS the final state.
+                """
+                final_state: dict = {}
+                prev_trail_len = 0
+                for snapshot in pipeline.stream(
                     initial_state,
                     config={"run_name": f"disruption:{event_id}"},
-                ),
+                    stream_mode="values",
+                ):
+                    # snapshot is the full state after the latest node
+                    trail = snapshot.get("audit_trail", [])
+                    new_entries = trail[prev_trail_len:]
+                    prev_trail_len = len(trail)
+                    latest = new_entries[-1] if new_entries else {}
+                    node_name = latest.get("agent", "unknown")
+                    event_bus.publish(event_id, {
+                        "event": "node_complete",
+                        "node": node_name,
+                        "iteration": snapshot.get("iteration", 1),
+                        "agent": node_name,
+                        "decision": latest.get("decision", ""),
+                        "finding": (latest.get("finding") or "")[:200],
+                        "resolution_status": snapshot.get("resolution_status", ""),
+                    })
+                    final_state = snapshot
+                return final_state
+
+            final_state = await asyncio.get_event_loop().run_in_executor(
+                None, _stream_pipeline
             )
             resolution_status = final_state.get("resolution_status", "processing")
             event.status = resolution_status
