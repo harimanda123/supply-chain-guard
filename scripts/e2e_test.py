@@ -73,7 +73,16 @@ async def run() -> None:
         final_status = ""
         while time.time() - start < TIMEOUT:
             r = await client.get(f"/api/v1/events/disruption/{event_id}")
-            status = r.json()["status"]
+            if r.status_code != 200:
+                log(f"  poll returned {r.status_code}, retrying...")
+                await asyncio.sleep(POLL_INTERVAL)
+                continue
+            data = r.json()
+            if "status" not in data:
+                log(f"  unexpected response: {data}, retrying...")
+                await asyncio.sleep(POLL_INTERVAL)
+                continue
+            status = data["status"]
             log(f"  status={status}")
             if status in ("pending_approval", "escalated", "escalated_stale_data", "error"):
                 final_status = status

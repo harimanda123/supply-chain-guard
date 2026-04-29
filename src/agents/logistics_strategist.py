@@ -91,11 +91,3 @@ Respond with: carrier_name, mode, estimated_cost, transit_days, and reasoning.
         "carrier_options": carrier_options,
         "audit_trail": state.get("audit_trail", []) + [audit_entry],
     }
-
-        "proposed_carrier_name": proposed_carrier_name,
-        "proposed_carrier_id": proposed_carrier_id,
-        "proposed_mode": proposed_mode,
-        "proposed_cost": proposed_cost,
-        "proposed_transit_days": proposed_transit_days,
-        "audit_trail": state.get("audit_trail", []) + [audit_entry],
-    }
