@@ -461,8 +461,7 @@ curl http://localhost:8000/api/v1/events/disruption/{event_id}
 | `LANGSMITH_TRACING` | `false` | Enable LangSmith tracing (`true`/`false`) |
 | `LANGSMITH_API_KEY` | — | LangSmith API key |
 | `LANGSMITH_PROJECT` | `supply-chain-guard` | LangSmith project name |
-| `CARRIER_API_URL` | — | TMS carrier booking endpoint (for writeback) |
-| `CARRIER_API_KEY` | — | TMS carrier API key |
+
 
 ---
 
@@ -516,9 +515,23 @@ Every pipeline run is traced automatically when `LANGSMITH_TRACING=true`.
 
 ## ERP & TMS Integration
 
+### Integration Model — Pull, Not Push
+
+Supply Chain Guard uses a **pull model**: the ERP calls Supply Chain Guard's API to submit disruptions and retrieve approved resolution plans. Supply Chain Guard does not push bookings to any TMS — the ERP already has the approved plan and handles the downstream booking itself.
+
+```
+ERP  →  POST /api/v1/events/erp/{source_system}    submit disruption
+ERP  →  GET  /api/v1/approvals/pending              poll for ready plans
+ERP  →  POST /api/v1/approvals/{event_id}/approve   confirm approval
+ERP  ←  response: carrier, mode, cost, transit days, audit trail
+ERP  →  creates TMS booking using its own integration
+```
+
+This keeps Supply Chain Guard stateless after approval. The ERP owns retry logic, booking confirmation, and error handling — it does not need to grant Supply Chain Guard outbound access to any TMS.
+
 ### ERP Input Adapters (`src/adapters/erp_input.py`)
 
-Register a custom transform for any ERP system:
+Every ERP has its own proprietary alert payload format. Register a transform function to normalise it into the standard `DisruptionEvent` format:
 
 ```python
 @register_transform("erp_system_a")
@@ -531,21 +544,9 @@ def transform_erp_a(raw: dict) -> dict:
     }
 ```
 
-Supported out of the box: `erp_system_a`, `erp_system_b`, `erp_system_c`
+Supported out of the box: `erp_system_a`, `erp_system_b`, `erp_system_c`. Adding a 4th is one decorated function.
 
-POST to `/api/v1/events/erp/{source_system}` with the raw ERP payload.
-
-### TMS Output Adapter (`src/adapters/tms_output.py`)
-
-When a resolution is approved, the booking is written back via `carrier_api_stub`:
-
-```ini
-# .env
-CARRIER_API_URL=https://your-tms-booking-endpoint.example.com
-CARRIER_API_KEY=your_api_key
-```
-
-Extend by registering additional adapters for different TMS platforms.
+POST to `/api/v1/events/erp/{source_system}` with the raw ERP payload — the pipeline never sees the proprietary format.
 
 ---
 
